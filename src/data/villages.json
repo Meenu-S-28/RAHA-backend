@@ -1,12 +1,62 @@
-{
-  "villageId": "VIL001",
-  "name": "Greenfield",
-  "district": "Sunrise District",
-  "population": 3200,
-  "location": {
-    "type": "Point",
-    "coordinates": [77.5946, 12.9716]
+[
+  {
+    "villageId": "V001",
+    "name": "Rampur",
+    "district": "Patna",
+    "population": 4500,
+    "location": {
+      "type": "Point",
+      "coordinates": [85.125, 25.612] 
+    },
+    "accessScore": null,
+    "nearestHospitalId": null
   },
-  "accessScore": 0.65,
-  "nearestHospitalId": "HOS101"
-}
+  {
+    "villageId": "V002",
+    "name": "Kundli",
+    "district": "Rohtak",
+    "population": 3200,
+    "location": {
+      "type": "Point",
+      "coordinates": [76.691, 28.981]
+    },
+    "accessScore": null,
+    "nearestHospitalId": null
+  },
+  {
+    "villageId": "V003",
+    "name": "Pallavaram",
+    "district": "Chennai",
+    "population": 5200,
+    "location": {
+      "type": "Point",
+      "coordinates": [80.149, 12.967]
+    },
+    "accessScore": null,
+    "nearestHospitalId": null
+  },
+  {
+    "villageId": "V004",
+    "name": "Chandipur",
+    "district": "Balasore",
+    "population": 2700,
+    "location": {
+      "type": "Point",
+      "coordinates": [87.012, 21.471]
+    },
+    "accessScore": null,
+    "nearestHospitalId": null
+  },
+  {
+    "villageId": "V005",
+    "name": "Thalassery",
+    "district": "Kannur",
+    "population": 6100,
+    "location": {
+      "type": "Point",
+      "coordinates": [75.492, 11.749]
+    },
+    "accessScore": null,
+    "nearestHospitalId": null
+  }
+]

@@ -1,15 +1,72 @@
-{
-  "hospitalId": "HOS101",
-  "name": "Sunrise District Hospital",
-  "type": "District Hospital",
-  "district": "Sunrise District",
-  "doctors": 45,
-  "beds": 200,
-  "services": ["OPD", "Emergency", "Surgery"],
-  "admissionFee": 500,
-  "location": {
-    "type": "Point",
-    "coordinates": [77.6010, 12.9750]
+[
+  {
+    "hospitalId": "H001",
+    "name": "Patna District Hospital",
+    "type": "District Hospital",
+    "district": "Patna",
+    "doctors": 25,
+    "beds": 120,
+    "services": ["OPD", "Emergency", "Maternal Care"],
+    "admissionFee": 50,
+    "location": {
+      "type": "Point",
+      "coordinates": [85.135, 25.617]
+    }
   },
-  "lastUpdated": "2025-10-02T06:30:00.000Z"
-}
+  {
+    "hospitalId": "H002",
+    "name": "Rohtak PHC Center",
+    "type": "PHC",
+    "district": "Rohtak",
+    "doctors": 5,
+    "beds": 20,
+    "services": ["OPD"],
+    "admissionFee": 0,
+    "location": {
+      "type": "Point",
+      "coordinates": [76.695, 28.985]
+    }
+  },
+  {
+    "hospitalId": "H003",
+    "name": "Chennai City Clinic",
+    "type": "Clinic",
+    "district": "Chennai",
+    "doctors": 8,
+    "beds": 10,
+    "services": ["OPD", "Diagnostics"],
+    "admissionFee": 100,
+    "location": {
+      "type": "Point",
+      "coordinates": [80.152, 12.970]
+    }
+  },
+  {
+    "hospitalId": "H004",
+    "name": "Balasore Charitable Hospital",
+    "type": "Charitable Hospital",
+    "district": "Balasore",
+    "doctors": 12,
+    "beds": 50,
+    "services": ["OPD", "Maternal Care", "Child Care"],
+    "admissionFee": 20,
+    "location": {
+      "type": "Point",
+      "coordinates": [87.018, 21.474]
+    }
+  },
+  {
+    "hospitalId": "H005",
+    "name": "Kannur General Hospital",
+    "type": "District Hospital",
+    "district": "Kannur",
+    "doctors": 18,
+    "beds": 80,
+    "services": ["OPD", "Emergency", "Surgery"],
+    "admissionFee": 75,
+    "location": {
+      "type": "Point",
+      "coordinates": [75.496, 11.753]
+    }
+  }
+]
