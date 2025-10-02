@@ -1,0 +1,15 @@
+{
+  "hospitalId": "HOS101",
+  "name": "Sunrise District Hospital",
+  "type": "District Hospital",
+  "district": "Sunrise District",
+  "doctors": 45,
+  "beds": 200,
+  "services": ["OPD", "Emergency", "Surgery"],
+  "admissionFee": 500,
+  "location": {
+    "type": "Point",
+    "coordinates": [77.6010, 12.9750]
+  },
+  "lastUpdated": "2025-10-02T06:30:00.000Z"
+}

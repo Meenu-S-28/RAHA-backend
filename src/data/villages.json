@@ -1,0 +1,12 @@
+{
+  "villageId": "VIL001",
+  "name": "Greenfield",
+  "district": "Sunrise District",
+  "population": 3200,
+  "location": {
+    "type": "Point",
+    "coordinates": [77.5946, 12.9716]
+  },
+  "accessScore": 0.65,
+  "nearestHospitalId": "HOS101"
+}

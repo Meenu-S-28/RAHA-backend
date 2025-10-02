@@ -1,0 +1,12 @@
+{
+  "villageId": "VIL045",
+  "name": "Riverbend",
+  "district": "Valley District",
+  "population": 1500,
+  "location": {
+    "type": "Point",
+    "coordinates": [78.1234, 13.5678]
+  },
+  "accessScore": 0.42,
+  "nearestHospitalId": "HOS205"
+}
