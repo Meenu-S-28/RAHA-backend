@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/db.js";
 import villageRoutes from "./routes/villageRoutes.js";
-// import hospitalRoutes from "./routes/hospitalRoutes.js";
+import hospitalRoutes from "./routes/hospitalRoutes.js";
 // import campRoutes from "./routes/campRoutes.js";
 
 dotenv.config();
@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/villages", villageRoutes);
-// app.use("/api/hospitals", hospitalRoutes);
+app.use("/api/hospitals", hospitalRoutes);
 // app.use("/api/camps", campRoutes);
 
 const PORT = process.env.PORT || 5000;
