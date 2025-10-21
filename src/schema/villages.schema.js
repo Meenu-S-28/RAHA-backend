@@ -49,6 +49,7 @@ export const villageSchema = z.object({
     .nullable()
     .optional(),
   nearestHospitalId: z.string().nullable().optional(),
+  nearestHospitalDistance: z.number().nullable().optional(),
 });
 
 // Optional partial schema for PATCH updates

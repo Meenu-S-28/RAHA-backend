@@ -59,3 +59,15 @@ export const deleteVillage = async (req, res) => {
     res.status(500).json({ message: "Error deleting village", error });
   }
 };
+
+export const assignNearestHospitals = async (req, res) => {
+  try {
+    const result = await villageService.assignNearestHospitalsToVillages();
+    res.status(200).json({
+      message: "Nearest hospitals assigned successfully!",
+      ...result,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

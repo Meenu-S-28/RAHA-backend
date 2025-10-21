@@ -76,10 +76,11 @@ const VillageSchema = new mongoose.Schema(
       max: 100,
     },
     nearestHospitalId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: "Hospital",
       default: null,
     },
+    nearestHospitalDistance: { type: Number, default: null, },
   },
   {
     timestamps: true,

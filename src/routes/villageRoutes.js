@@ -6,6 +6,7 @@ import {
   createVillage,
   updateVillage,
   deleteVillage,
+  assignNearestHospitals,
 } from "../controllers/villageController.js";
 
 const router = express.Router();
@@ -16,6 +17,9 @@ router.get("/:id", getVillage);        // GET one
 router.post("/", createVillage);       // POST create
 router.put("/:id", updateVillage);     // PUT update
 router.delete("/:id", deleteVillage);  // DELETE
+
+// Bulk updater API
+router.post("/assignNearestHospitals", assignNearestHospitals);
 
 export default router;
 
