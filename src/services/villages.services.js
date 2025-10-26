@@ -16,48 +16,48 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 };
 
-// ---------------- Find Nearest Hospital ----------------
-async function findNearestHospital(lat, lon) {
+
+// ---------------- Find Top 3 Nearest Hospitals ----------------
+async function findTopNearestHospitals(lat, lon, limit = 3) {
   const hospitals = await Hospital.find({});
-  if (!hospitals.length) return null;
+  if (!hospitals.length) return [];
 
-  let nearest = hospitals[0];
-  let minDist = calculateDistance(
-    lat,
-    lon,
-    hospitals[0].location.coordinates[1],
-    hospitals[0].location.coordinates[0]
-  );
-
-  for (const hosp of hospitals) {
-    const dist = calculateDistance(
+  // Calculate distances to all hospitals
+  const distances = hospitals.map((h) => {
+    const distKm = calculateDistance(
       lat,
       lon,
-      hosp.location.coordinates[1],
-      hosp.location.coordinates[0]
+      h.location.coordinates[1],
+      h.location.coordinates[0]
     );
-    if (dist < minDist) {
-      minDist = dist;
-      nearest = hosp;
-    }
-  }
+    return {
+      hospital: h,
+      distanceKm: distKm,
+    };
+  });
 
-  return { hospital: nearest, distanceKm: minDist };
-};
-
-// ---------------- Compute Access Score ----------------
-async function computeAccessScore(village) {
-  if (!village.nearestHospitalId || !village.nearestHospitalDistance) return null;
-
-  const hospital = await Hospital.findOne({ hospitalId: village.nearestHospitalId });
-  if (!hospital) return null;
-
-  // Doctors-to-population ratio divided by distance
-  const score = (hospital.doctors / village.population) / village.nearestHospitalDistance;
-
-  // Optional: clamp between 0–1
-  return Math.min(score, 1);
+  // Sort by ascending distance and take top 3
+  distances.sort((a, b) => a.distanceKm - b.distanceKm);
+  return distances.slice(0, limit);
 }
+
+
+// ---------------- Compute Access Score (Avg of Top 3) ----------------
+function computeAverageAccessScore(village, hospitalData) {
+  if (!hospitalData.length) return 0;
+
+  // Score = (doctors/population)/distance
+  const scores = hospitalData.map((h) => {
+    const ratio = h.hospital.doctors / village.population;
+    return ratio / h.distanceKm;
+  });
+
+  const avgScore = scores.reduce((sum, s) => sum + s, 0) / scores.length;
+
+  // Optional clamp 0–1
+  return Math.min(avgScore, 1);
+}
+
 
 export const getAllVillages = async () => {
   return await Village.find();
@@ -75,55 +75,75 @@ export const getVillageByVillageId = async (villageId) => {
 //   return await village.save();
 // };
 
+
+
+// ---------------- CREATE ----------------
 export async function createVillage(data) {
   const parsed = villageSchema.parse(data);
-
   const [lon, lat] = parsed.location.coordinates;
-  const nearest = await findNearestHospital(lat, lon);
+
+  const nearestHospitals = await findTopNearestHospitals(lat, lon);
+
+  const hospitalIds = nearestHospitals.map((h) => h.hospital.hospitalId);
+  const distances = nearestHospitals.map((h) => h.distanceKm);
 
   const villageData = {
     ...parsed,
-    nearestHospitalId: nearest ? nearest.hospital.hospitalId : null,
-    nearestHospitalDistance: nearest ? nearest.distanceKm : null
+    nearestHospitals: hospitalIds,
+    nearestHospitalsDistance: distances,
   };
 
   const newVillage = new Village(villageData);
 
-  // Compute access score
-  newVillage.accessScore = await computeAccessScore(newVillage);
+  // Compute avg access score across top 3
+  newVillage.accessScore = computeAverageAccessScore(newVillage, nearestHospitals);
 
   return await newVillage.save();
-};
+}
 
 // export const updateVillage = async (villageId, data) => {
 //   return await Village.findOneAndUpdate({villageId: villageId}, data, { new: true });
 // };
 
+
 // ---------------- UPDATE ----------------
 export async function updateVillage(villageId, data) {
   const parsed = villageSchema.partial().parse(data);
-  const existing = await Village.findOne({villageId: villageId});
+  const existing = await Village.findOne({ villageId });
   if (!existing) throw new Error("Village not found");
 
   Object.assign(existing, parsed);
 
   if (parsed.location && parsed.location.coordinates) {
     const [lon, lat] = parsed.location.coordinates;
-    const nearest = await findNearestHospital(lat, lon);
-    existing.nearestHospitalId = nearest ? nearest.hospital.hospitalId : null;
-    existing.nearestHospitalDistance = nearest ? nearest.distanceKm : null;
+    const nearestHospitals = await findTopNearestHospitals(lat, lon);
+
+    existing.nearestHospitals = nearestHospitals.map((h) => h.hospital.hospitalId);
+    existing.nearestHospitalsDistance = nearestHospitals.map((h) => h.distanceKm);
+    existing.accessScore = computeAverageAccessScore(existing, nearestHospitals);
+  } else {
+    // Recalculate score using existing hospitals if available
+    if (existing.nearestHospitals && existing.nearestHospitals.length) {
+      const hospitals = await Hospital.find({
+        hospitalId: { $in: existing.nearestHospitals },
+      });
+      const hospitalData = hospitals.map((h, i) => ({
+        hospital: h,
+        distanceKm: existing.nearestHospitalsDistance[i] ?? 1,
+      }));
+      existing.accessScore = computeAverageAccessScore(existing, hospitalData);
+    }
   }
 
-  // Compute access score
-  existing.accessScore = await computeAccessScore(existing);
-
   return await existing.save();
-};
+}
 
 export const deleteVillage = async (villageId) => {
   return await Village.findOneAndDelete({villageId: villageId});
 };
 
+
+// ---------------- BULK ASSIGN (Recalculate for All Villages) ----------------
 export async function assignNearestHospitalsToVillages() {
   const hospitals = await Hospital.find({});
   const villages = await Village.find({});
@@ -133,22 +153,26 @@ export async function assignNearestHospitalsToVillages() {
 
   for (const village of villages) {
     const [lon, lat] = village.location.coordinates;
-    const nearest = await findNearestHospital(lat, lon);
-    if (nearest) {
-      village.nearestHospitalId = nearest.hospital.hospitalId;
-      village.nearestHospitalDistance = nearest.distanceKm;
-      village.accessScore = await computeAccessScore(village);
-      await village.save();
+    const nearestHospitals = await findTopNearestHospitals(lat, lon);
+
+    if (nearestHospitals.length) {
+      village.nearestHospitals = nearestHospitals.map((h) => h.hospital.hospitalId);
+      village.nearestHospitalsDistance = nearestHospitals.map((h) => h.distanceKm);
+      village.accessScore = computeAverageAccessScore(village, nearestHospitals);
+ // 🧹 Remove deprecated fields
+    village.set("nearestHospitalId", undefined, { strict: false });
+    village.set("nearestHospitalDistance", undefined, { strict: false });
+
+    await village.save();
 
       updates.push({
         village: village.name,
-        nearestHospital: nearest.hospital.name,
-        distanceKm: nearest.distanceKm.toFixed(2),
-        accessScore: village.accessScore.toFixed(4)
+        nearestHospitals: village.nearestHospitals,
+        distances: village.nearestHospitalsDistance.map((d) => d.toFixed(2)),
+        accessScore: village.accessScore.toFixed(4),
       });
     }
   }
 
   return { updatedCount: updates.length, updates };
-};
-
+}

@@ -7,49 +7,72 @@ export const generateCampRecommendations = async () => {
   const recommendations = [];
 
   for (const village of villages) {
-     const hospital = await Hospital.findOne({hospitalId: village.nearestHospitalId});
-     const distanceKm = village.nearestHospitalDistance??0;
-     const accessScore = village.accessScore??0;
+    // Fetch top 3 hospitals based on stored IDs
+    const hospitalIds = village.nearestHospitals || [];
+    const hospitals = await Hospital.find({ hospitalId: { $in: hospitalIds } });
+
+    // Extract data
+    const distances = village.nearestHospitalsDistance || [];
+    const avgDistance =
+      distances.length > 0
+        ? distances.reduce((a, b) => a + b, 0) / distances.length
+        : 0;
+
+    const accessScore = village.accessScore ?? 0;
+    const avgDoctors =
+      hospitals.length > 0
+        ? hospitals.reduce((sum, h) => sum + (h.doctors || 0), 0) / hospitals.length
+        : 0;
+    const avgBeds =
+      hospitals.length > 0
+        ? hospitals.reduce((sum, h) => sum + (h.beds || 0), 0) / hospitals.length
+        : 0;
 
     let needsCamp = false;
-    let reason = "";
+    const reasons = [];
     let severityScore = 0;
     const servicesRecommended = [];
 
-    
-    // --- Apply rules ---
-    if (distanceKm > 20) {
+    // --- Rule 1: Far distance ---
+    if (avgDistance > 20) {
       needsCamp = true;
-      reason = `No hospital within 20 km (nearest: ${distanceKm.toFixed(1)} km)`;
-      severityScore = 1;
+      reasons.push(`No hospital within 20 km (avg: ${avgDistance.toFixed(1)} km)`);
+      severityScore = Math.max(severityScore, 1);
       servicesRecommended.push("General OPD");
-    } else if (
-      village.population > 3000 &&
-      (hospital.doctors < 50 || hospital.beds < 50)
-    ) {
+    }
+
+    // --- Rule 2: High population but low capacity ---
+    if (village.population > 3000 && (avgDoctors < 50 || avgBeds < 50)) {
       needsCamp = true;
-      reason = `High population (${village.population}) but low hospital capacity (doctors: ${hospital.doctors}, beds: ${hospital.beds})`;
-      severityScore = 0.8;
+      reasons.push(
+        `High population (${village.population}) but low average hospital capacity (doctors: ${avgDoctors.toFixed(
+          1
+        )}, beds: ${avgBeds.toFixed(1)})`
+      );
+      severityScore = Math.max(severityScore, 0.8);
       servicesRecommended.push("Maternal Care", "Emergency");
-    } else if (accessScore < 0.3) {
+    }
+
+    // --- Rule 3: Low access score ---
+    if (accessScore < 0.3) {
       needsCamp = true;
-      reason = `Low access score (${accessScore.toFixed(2)})`;
-      severityScore = 0.6;
+      reasons.push(`Low access score (${accessScore.toFixed(2)})`);
+      severityScore = Math.max(severityScore, 0.6);
       servicesRecommended.push("OPD");
     }
 
     if (needsCamp) {
       recommendations.push({
         targetVillageId: village._id,
-        nearestHospitalId: hospital._id,
-        reason,
+        nearestHospitals: hospitals.map((h) => h._id),
+        reasons,
         severityScore,
-        servicesRecommended
+        servicesRecommended,
       });
     }
   }
 
-// --- Sort by severity (descending) ---
+  // --- Sort by severity (descending) ---
   recommendations.sort((a, b) => b.severityScore - a.severityScore);
 
   // --- Compute summary stats ---
@@ -61,25 +84,28 @@ export const generateCampRecommendations = async () => {
           recommendations.length
         : 0,
     reasonsCount: recommendations.reduce((acc, r) => {
-      const key =
-        r.reason.includes("No hospital within") ? "Distance > 20km" :
-        r.reason.includes("High population") ? "High pop / low capacity" :
-        "Low access score";
-      acc[key] = (acc[key] || 0) + 1;
+      for (const reason of r.reasons) {
+        const key =
+          reason.includes("20 km")
+            ? "Distance > 20km"
+            : reason.includes("population")
+            ? "High pop / low capacity"
+            : "Low access score";
+        acc[key] = (acc[key] || 0) + 1;
+      }
       return acc;
     }, {}),
   };
 
-
-  // Clear old recommendations and insert new ones
+  // --- Replace old recommendations ---
   await CampRecommendation.deleteMany({});
   await CampRecommendation.insertMany(recommendations);
 
-   // ---log to console for analytics visibility ---
+  // --- Log summary ---
   console.log("✅ Camp recommendations generated:");
   console.log(`Total: ${summary.total}`);
   console.log(`Average Severity: ${summary.avgSeverity.toFixed(2)}`);
   console.table(summary.reasonsCount);
 
-  return {summary, recommendations};
+  return { summary, recommendations };
 };
