@@ -101,7 +101,7 @@ export const findNearestHospitalByService = async (req, res) => {
           query: { services: { $regex: new RegExp(service, "i") } }
         }
       },
-      { $limit: 1 }
+      { $limit: 3 }
     ]);
 
     if (!nearest.length) {
@@ -112,17 +112,23 @@ export const findNearestHospitalByService = async (req, res) => {
 
     const result = nearest[0];
 
-    return res.status(200).json({
-      message: `Nearest hospital offering ${service}`,
-      data: {
-        hospitalId: result.hospitalId,
-        name: result.name,
-        district: result.district,
-        services: result.services,
-        coordinates: result.location.coordinates,
-        distanceInKm: (result.distance / 1000).toFixed(2)
-      }
-    });
+   return res.status(200).json({
+    message: `Nearest hospitals offering ${service}`,
+    data: nearest.map((h) => ({
+      hospitalId: h.hospitalId,
+      name: h.name,
+      district: h.district,
+      state: h.state,
+      specialty: h.services.join(", "),
+      coordinates: h.location.coordinates,
+      distanceInKm: (h.distance / 1000).toFixed(2),
+      contact: h.contact || "N/A",
+      doctors: h.doctorsCount || 0,
+      beds: h.bedsCount || 0,
+      address: h.address || "Not available",
+    })),
+  });
+
   } catch (error) {
     console.error("Error finding nearest hospital:", error);
     res.status(500).json({ message: "Server error", error: error.message });
