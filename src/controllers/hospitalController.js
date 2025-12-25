@@ -61,46 +61,64 @@ export const deleteHospital = async (req, res) => {
  * OR
  * GET /api/hospitals/nearest?service=Emergency&lat=12.34&lng=77.56
  */
-export const findNearestHospitals = async (req, res) => {
-  try {
-    const { lat, lng } = req.query;
 
-    if (!lat || !lng) {
-      return res.status(400).json({ message: "Latitude and longitude are required." });
+export const findNearestHospitalByService = async (req, res) => {
+  try {
+    const { service, lat, lng, villageId, limit = 3 } = req.query;
+
+    if (!service) {
+      return res.status(400).json({ message: "Service parameter is required." });
     }
 
-    const coordinates = [parseFloat(lng), parseFloat(lat)];
+    let coordinates;
 
-    const nearest = await Hospital.aggregate([
+    if (villageId) {
+      const village = await Village.findOne({ villageId });
+      if (!village) {
+        return res.status(404).json({ message: "Village not found." });
+      }
+      coordinates = village.location.coordinates;
+    } else if (lat && lng) {
+      coordinates = [parseFloat(lng), parseFloat(lat)];
+    } else {
+      return res.status(400).json({
+        message: "Provide villageId or lat/lng",
+      });
+    }
+
+    const hospitals = await Hospital.aggregate([
       {
         $geoNear: {
           near: { type: "Point", coordinates },
           distanceField: "distance",
-          spherical: true
-        }
+          spherical: true,
+          query: {
+            services: { $regex: new RegExp(service, "i") },
+          },
+        },
       },
-      { $limit: 20 }
+      { $limit: Number(limit) }, // ✅ TOP N
     ]);
 
-    return res.json({
-      message: "Nearest hospitals found",
-      data: nearest.map((h) => ({
+    if (!hospitals.length) {
+      return res.status(404).json({
+        message: `No hospitals found offering ${service}`,
+      });
+    }
+
+    return res.status(200).json({
+      message: `Top ${limit} nearest hospitals offering ${service}`,
+      data: hospitals.map((h) => ({
         hospitalId: h.hospitalId,
         name: h.name,
         district: h.district,
-        type: h.type,
         services: h.services,
         coordinates: h.location.coordinates,
         distanceInKm: (h.distance / 1000).toFixed(2),
-        doctors: h.doctors,
-        beds: h.beds,
-        admissionFee: h.admissionFee,
       })),
     });
   } catch (error) {
-    console.error("Nearest hospital error:", error);
-    res.status(500).json({ message: "Server error", error });
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
-
