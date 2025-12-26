@@ -65,7 +65,7 @@ export const getVillageAccessHeatmap = async (req, res) => {
     const heatmapData = villages.map(v => ({
       lat: v.location.coordinates[1],
       lng: v.location.coordinates[0],
-      intensity: Number(v.accessScore.toFixed(2))
+      intensity: Math.min(1, Math.max(0, Number(v.accessScore)))
     }));
 
     res.json(heatmapData);

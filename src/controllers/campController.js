@@ -17,13 +17,20 @@ export const generateCamps = async (req, res) => {
 export const getAllCamps = async (req, res) => {
   try {
     const camps = await CampRecommendation.find()
-      .populate("targetVillageId", "name district population")
-      .populate("nearestHospitals", "name district doctors beds");
+      .populate(
+        "targetVillageId",
+        "name district population accessScore location nearestHospitals nearestHospitalsDistance"
+      );
+
     res.json(camps);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching camps", error });
+    res.status(500).json({
+      message: "Error fetching camps",
+      error: error.message,
+    });
   }
 };
+
 
 export const updateCampStatus = async (req, res) => {
   try {

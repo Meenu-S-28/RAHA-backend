@@ -1,4 +1,3 @@
-
 import express from "express";
 import {
   getVillages,
@@ -13,20 +12,16 @@ import {
 
 const router = express.Router();
 
-// REST API Endpoints
-router.get("/", getVillages);          // GET all
-router.get("/:id", getVillage);        // GET one
-router.post("/", createVillage);       // POST create
-router.put("/:id", updateVillage);     // PUT update
-router.delete("/:id", deleteVillage);  // DELETE
-
-// Bulk updater API
+/* -------- SPECIAL ROUTES FIRST -------- */
+router.get("/heatmap/access", getVillageAccessHeatmap);
+router.get("/connections", getVillageHospitalConnections);
 router.post("/assignNearestHospitals", assignNearestHospitals);
 
-router.get("/heatmap/access", getVillageAccessHeatmap);
-
-router.get("/connections",getVillageHospitalConnections);
-
+/* -------- STANDARD CRUD -------- */
+router.get("/", getVillages);
+router.get("/:id", getVillage);
+router.post("/", createVillage);
+router.put("/:id", updateVillage);
+router.delete("/:id", deleteVillage);
 
 export default router;
-
