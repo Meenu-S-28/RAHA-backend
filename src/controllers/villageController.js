@@ -1,6 +1,82 @@
 //Acts as a bridge to connect the api endpoints(routes) and the business logic(services)
 import { villageSchema } from "../schema/villages.schema.js";
 import * as villageService from "../services/villages.services.js";
+import Village from "../models/villages.models.js";
+import Hospital from "../models/hospitals.models.js";
+
+export const getVillageHospitalConnections = async (req, res) => {
+  try {
+    const villages = await Village.find({
+      nearestHospitals: { $exists: true, $ne: [] }
+    });
+
+    const hospitalMap = {};
+    const hospitals = await Hospital.find();
+
+    hospitals.forEach(h => {
+      hospitalMap[h.hospitalId] = h;
+    });
+
+    const result = villages.map(v => ({
+      village: {
+        name: v.name,
+        coordinates: [
+          v.location.coordinates[1],
+          v.location.coordinates[0]
+        ],
+        accessScore: v.accessScore
+      },
+      hospitals: v.nearestHospitals.map((hid, i) => {
+        const h = hospitalMap[hid];
+        return h
+          ? {
+              hospitalId: hid,
+              name: h.name,
+              coordinates: [
+                h.location.coordinates[1],
+                h.location.coordinates[0]
+              ],
+              distanceKm: v.nearestHospitalsDistance?.[i] ?? null
+            }
+          : null;
+      }).filter(Boolean)
+    }));
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to fetch village-hospital connections",
+      error: err.message
+    });
+  }
+};
+
+export const getVillageAccessHeatmap = async (req, res) => {
+  try {
+    const villages = await Village.find(
+      { accessScore: { $exists: true } },
+      {
+        _id: 0,
+        accessScore: 1,
+        "location.coordinates": 1
+      }
+    );
+
+    const heatmapData = villages.map(v => ({
+      lat: v.location.coordinates[1],
+      lng: v.location.coordinates[0],
+      intensity: Number(v.accessScore.toFixed(2))
+    }));
+
+    res.json(heatmapData);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch village heatmap data",
+      error: error.message
+    });
+  }
+};
+
 
 export const getVillages = async (req, res) => {
   try {

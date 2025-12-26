@@ -7,6 +7,8 @@ import {
   updateVillage,
   deleteVillage,
   assignNearestHospitals,
+  getVillageAccessHeatmap,
+  getVillageHospitalConnections,
 } from "../controllers/villageController.js";
 
 const router = express.Router();
@@ -20,6 +22,11 @@ router.delete("/:id", deleteVillage);  // DELETE
 
 // Bulk updater API
 router.post("/assignNearestHospitals", assignNearestHospitals);
+
+router.get("/heatmap/access", getVillageAccessHeatmap);
+
+router.get("/connections",getVillageHospitalConnections);
+
 
 export default router;
 
