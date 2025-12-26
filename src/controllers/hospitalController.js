@@ -66,9 +66,9 @@ export const findNearestHospitalByService = async (req, res) => {
   try {
     const { service, lat, lng, villageId, limit = 3 } = req.query;
 
-    if (!service) {
-      return res.status(400).json({ message: "Service parameter is required." });
-    }
+    // if (!service) {
+    //   return res.status(400).json({ message: "Service parameter is required." });
+    // }
 
     let coordinates;
 
@@ -85,26 +85,50 @@ export const findNearestHospitalByService = async (req, res) => {
         message: "Provide villageId or lat/lng",
       });
     }
+    // 2️⃣ GeoNear stage
+    const geoNearStage = {
+      $geoNear: {
+        near: { type: "Point", coordinates },
+        distanceField: "distance",
+        spherical: true
+      }
+    };
+
+    // 3️⃣ Apply service filter ONLY if provided
+    if (service) {
+      geoNearStage.$geoNear.query = {
+        services: { $regex: new RegExp(service, "i") }
+      };
+    }
 
     const hospitals = await Hospital.aggregate([
-      {
-        $geoNear: {
-          near: { type: "Point", coordinates },
-          distanceField: "distance",
-          spherical: true,
-          query: {
-            services: { $regex: new RegExp(service, "i") },
-          },
-        },
-      },
-      { $limit: Number(limit) }, // ✅ TOP N
+      geoNearStage,
+      { $limit: Number(limit) }
     ]);
-
+    
     if (!hospitals.length) {
-      return res.status(404).json({
-        message: `No hospitals found offering ${service}`,
-      });
+      return res.status(404).json({ message: "No hospitals found" });
     }
+
+    // const hospitals = await Hospital.aggregate([
+    //   {
+    //     $geoNear: {
+    //       near: { type: "Point", coordinates },
+    //       distanceField: "distance",
+    //       spherical: true,
+    //       query: {
+    //         services: { $regex: new RegExp(service, "i") },
+    //       },
+    //     },
+    //   },
+    //   { $limit: Number(limit) }, // ✅ TOP N
+    // ]);
+
+    // if (!hospitals.length) {
+    //   return res.status(404).json({
+    //     message: `No hospitals found offering ${service}`,
+    //   });
+    // }
 
     return res.status(200).json({
       message: `Top ${limit} nearest hospitals offering ${service}`,
@@ -114,6 +138,8 @@ export const findNearestHospitalByService = async (req, res) => {
         district: h.district,
         services: h.services,
         coordinates: h.location.coordinates,
+        beds:h.beds,
+        doctors:h.doctors,
         distanceInKm: (h.distance / 1000).toFixed(2),
       })),
     });
